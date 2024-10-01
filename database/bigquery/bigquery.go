@@ -47,7 +47,7 @@ type BigQuery struct {
 	lock   *uatomic.Bool
 }
 
-// Config allows to customize the BigQuery type
+// Config allows to customize the BigQuery type.
 type Config struct {
 	MigrationsTable string
 	DatasetID       string
@@ -359,5 +359,5 @@ func parseDNS(u *nurl.URL) (string, string, error) {
 		return "", "", errors.New("invalid url format expected, bigquery://{projectID}/{datasetID}?param=true")
 	}
 
-	return fragments[0], fragments[1], nil
+	return fragments[0], strings.TrimSuffix(fragments[1], "?"), nil
 }
