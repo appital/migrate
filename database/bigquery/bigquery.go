@@ -108,6 +108,10 @@ func (b *BigQuery) Open(url string) (database.Driver, error) {
 		opts = append(opts, bqopt.WithoutAuthentication())
 	}
 
+	if u.Query().Has("x-gcp-credentials-file") {
+		opts = append(opts, bqopt.WithCredentialsFile(u.Query().Get("x-gcp-credentials-file")))
+	}
+
 	stmtTimeout := DefaultQueryTimeout
 	if u.Query().Has("x-stmt-timeout") {
 		stmtTimeout, err = time.ParseDuration(u.Query().Get("x-stmt-timeout"))
