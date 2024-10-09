@@ -30,13 +30,13 @@ const (
 	DefaultQueryTimeout        = time.Duration(10 * time.Second)
 )
 
-var (
-	dbUnlocked = false
-	dbLocked   = true
+const (
+	unlockedVal = false
+	lockedVal   = true
+)
 
-	ErrDBLocked         = errors.New("unable to obtain database lock")
-	ErrDBNotLocked      = errors.New("database already unlocked")
-	ErrMissingConfigArg = errors.New("config is a required argument")
+var (
+	ErrNoConfig = errors.New("no config")
 )
 
 // BigQuery is a database.Driver implementation for running migrations in Big
@@ -63,13 +63,13 @@ func (c *Config) qualifiedMigrationsTable() string {
 // Config struct and returns a driver instance.
 func WithInstance(instance *bq.Client, config *Config) (database.Driver, error) {
 	if config == nil {
-		return nil, ErrMissingConfigArg
+		return nil, ErrNoConfig
 	}
 
 	b := &BigQuery{
 		DB:     instance,
 		config: config,
-		lock:   uatomic.NewBool(dbUnlocked),
+		lock:   uatomic.NewBool(unlockedVal),
 	}
 
 	err := b.ensureVersionTable()
@@ -141,21 +141,21 @@ func (b *BigQuery) Close() error {
 // If the implementation can't provide this functionality, return nil.
 // Return database.ErrLocked if database is already locked.
 func (b *BigQuery) Lock() error {
-	if isLocked := b.lock.CAS(dbUnlocked, dbLocked); isLocked {
+	if isLocked := b.lock.CAS(unlockedVal, lockedVal); isLocked {
 		return nil
 	}
 
-	return ErrDBLocked
+	return database.ErrLocked
 }
 
 // Unlock should release the lock. Migrate will call this function after
 // all migrations have been run.
 func (b *BigQuery) Unlock() error {
-	if isUnlocked := b.lock.CAS(dbLocked, dbUnlocked); isUnlocked {
+	if isUnlocked := b.lock.CAS(lockedVal, unlockedVal); isUnlocked {
 		return nil
 	}
 
-	return ErrDBNotLocked
+	return database.ErrNotLocked
 }
 
 // Run applies a migration to the database. migration is guaranteed to be not nil.
